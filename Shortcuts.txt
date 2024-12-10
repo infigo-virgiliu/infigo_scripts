@@ -1,0 +1,4 @@
+CTRL + ALT + P -> PatchRunner
+CTRL + ALT + H -> HardcodeClean
+CTRL + ALT + D -> Delete duplicates from English.csv
+CTRL + ALT + R -> Remove duplicates in Project files in the Project
