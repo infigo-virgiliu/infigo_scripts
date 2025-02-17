@@ -8,7 +8,7 @@ $choice = Read-Host "Enter your choice (1 or 2)"
 switch ($choice) {
     "1" {
         Write-Host "Running Full hard delete..."
-        cd D:\Repositories
+        cd D:\Projects\Catfish
         .\Build-Catfish.bat hardcoreclean
     }
     "2" {
