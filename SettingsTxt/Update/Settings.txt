@@ -1,0 +1,2 @@
+DataProvider: SqlServer
+DataConnectionString: Data Source=localhost;Initial Catalog=CatfishTest;Integrated Security=False;Persist Security Info=False;User ID=CU;Password=test;

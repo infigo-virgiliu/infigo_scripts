@@ -5,7 +5,7 @@ REM ==========================================
 REM Configuration Section - Edit these paths for your PC
 REM ==========================================
 set "PROJECT_ROOT=D:\Projects\catfish"
-set "SETTINGS_BASE=D:\SettingsTxt"
+set "SETTINGS_BASE=%~dp0SettingsTxt"
 set "CATFISH_ROOT=D:\Projects\Catfish"
 
 REM ==========================================
@@ -194,7 +194,7 @@ powershell -Command "& {$csvPath = '%CSV_PATH%'; if (Test-Path $csvPath) { $csvC
 
 echo Duplicate removal completed.
 pause
-
+goto menu
 
 REM ==========================================
 REM Exit Function
