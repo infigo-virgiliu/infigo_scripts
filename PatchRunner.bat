@@ -1,14 +1,38 @@
 @echo off
+setlocal enabledelayedexpansion
 
+REM ==========================================
+REM Configuration Section - Edit these paths for your PC
+REM ==========================================
+set "PROJECT_ROOT=D:\Projects\catfish"
+set "SETTINGS_BASE=D:\SettingsTxt"
+set "CATFISH_ROOT=D:\Projects\Catfish"
+
+REM ==========================================
+REM Derived paths (automatically calculated)
+REM ==========================================
+set "PATCHRUNNER_PATH=%PROJECT_ROOT%\Catfish\Catfish.PatchRunner"
+set "PATCHRUNNER_BIN=%PATCHRUNNER_PATH%\bin\Release"
+set "SETTINGS_MANAGEMENT=%SETTINGS_BASE%\CatfishManagement\Settings.txt"
+set "SETTINGS_UPDATE=%SETTINGS_BASE%\Update\Settings.txt"
+set "PLUGINS_PATH=%PROJECT_ROOT%\Catfish\Presentation\Nop.Web\Plugins"
+set "CSV_PATH=%PROJECT_ROOT%\Catfish\Catfish.PatchUpdates\TextResource\English.csv"
+set "BUILD_SCRIPT=%CATFISH_ROOT%\Build-Catfish.bat"
+
+REM ==========================================
+REM Main Menu Loop
+REM ==========================================
 :menu
+cls
 echo ==========================================
 echo             Catfish Menu
 echo ==========================================
 echo     Patch Runner 
 echo [1]   - CatfishManagement
 echo [2]   - Update
-echo [3] Hard Code Clean
-echo [4] Remove English.csv duplicates
+echo [3]   - Hard Code Clean
+echo [4]   - Remove English.csv duplicates
+echo [5]   - Exit
 echo ==========================================
 set /p choice=Enter your choice: 
 
@@ -16,61 +40,165 @@ if "%choice%"=="1" goto management
 if "%choice%"=="2" goto update
 if "%choice%"=="3" goto hardcodeclean
 if "%choice%"=="4" goto removeduplicates
+if "%choice%"=="5" goto exit
 
 echo Invalid choice. Please try again.
 pause
 goto menu
 
+REM ==========================================
+REM CatfishManagement Function
+REM ==========================================
+:management
+cls
+echo Running CatfishManagement...
+
+REM Check if PatchRunner bin directory exists
+if not exist "%PATCHRUNNER_BIN%" (
+    echo Error: %PATCHRUNNER_BIN% does not exist. Try to build your project first.
+    pause
+    goto menu
+)
+
+REM Remove existing Settings.txt if it exists
+if exist "%PATCHRUNNER_BIN%\Settings.txt" (
+    del "%PATCHRUNNER_BIN%\Settings.txt"
+)
+
+REM Copy Settings.txt for CatfishManagement
+if exist "%SETTINGS_MANAGEMENT%" (
+    copy "%SETTINGS_MANAGEMENT%" "%PATCHRUNNER_BIN%"
+    powershell write-host -fore Cyan "Copied Settings.txt file for CatfishManagement."
+) else (
+    echo Error: Settings file not found at %SETTINGS_MANAGEMENT%
+    pause
+    goto menu
+)
+
+REM Run CatfishManagement
+cd /d "%PATCHRUNNER_BIN%"
+start /B /wait Catfish.PatchRunner.exe task catfishmanagement
+echo CatfishManagement completed.
+pause
+goto menu
+
+REM ==========================================
+REM Update Function
+REM ==========================================
+:update
+cls
+echo Running Update...
+
+REM Check if PatchRunner bin directory exists
+if not exist "%PATCHRUNNER_BIN%" (
+    echo Error: %PATCHRUNNER_BIN% does not exist. Try to build your project first.
+    pause
+    goto menu
+)
+
+REM Remove existing Settings.txt if it exists
+if exist "%PATCHRUNNER_BIN%\Settings.txt" (
+    del "%PATCHRUNNER_BIN%\Settings.txt"
+)
+
+REM Copy Settings.txt for Update
+if exist "%SETTINGS_UPDATE%" (
+    copy "%SETTINGS_UPDATE%" "%PATCHRUNNER_BIN%"
+    powershell write-host -fore Cyan "Copied Settings.txt file for Update."
+) else (
+    echo Error: Settings file not found at %SETTINGS_UPDATE%
+    pause
+    goto menu
+)
+
+REM Run Update
+cd /d "%PATCHRUNNER_BIN%"
+start /B /wait Catfish.PatchRunner.exe update
+echo Update completed.
+pause
+goto menu
+
+REM ==========================================
+REM Hard Code Clean Function
+REM ==========================================
 :hardcodeclean
 cls
-start /B /wait Powershell.exe -ExecutionPolicy Bypass -File .\hardCodeCleanNew.ps1
+echo Hard Code Clean Options:
+echo [1] Full hard delete
+echo [2] Soft delete (plugins only)
+set /p cleanchoice=Enter your choice (1 or 2): 
+
+if "%cleanchoice%"=="1" goto fullharddelete
+if "%cleanchoice%"=="2" goto softdelete
+
+echo Invalid choice. Please try again.
 pause
+goto hardcodeclean
 
+:fullharddelete
+cls
+echo Running Full hard delete...
+if exist "%BUILD_SCRIPT%" (
+    cd /d "%CATFISH_ROOT%"
+    call "%BUILD_SCRIPT%" hardcoreclean
+    echo Full hard delete completed.
+) else (
+    echo Error: Build script not found at %BUILD_SCRIPT%
+)
+pause
+goto menu
 
+:softdelete
+cls
+echo Running Soft delete (deleting plugins only)...
+if exist "%PLUGINS_PATH%" (
+    powershell -Command "Remove-Item '%PLUGINS_PATH%\*' -Recurse -Force -ErrorAction SilentlyContinue"
+    echo All plugins in the folder have been deleted.
+) else (
+    echo The plugins folder does not exist: %PLUGINS_PATH%
+)
+pause
+goto menu
+
+REM ==========================================
+REM Remove Duplicates Function
+REM ==========================================
 :removeduplicates
 cls
-start /B /wait Powershell.exe .\removeDuplicates.ps1
+echo Removing English.csv duplicates...
+
+REM Check if CSV file exists
+if not exist "%CSV_PATH%" (
+    echo Error: CSV file not found at %CSV_PATH%
+    pause
+    goto menu
+)
+
+REM Check if PatchRunner bin directory exists
+if not exist "%PATCHRUNNER_BIN%" (
+    echo Error: %PATCHRUNNER_BIN% does not exist. Try to build your project first.
+    pause
+    goto menu
+)
+
+REM Copy Settings.txt if it doesn't exist
+if not exist "%PATCHRUNNER_BIN%\Settings.txt" (
+    if exist "%SETTINGS_MANAGEMENT%" (
+        copy "%SETTINGS_MANAGEMENT%" "%PATCHRUNNER_BIN%"
+        echo Settings.txt copied to %PATCHRUNNER_BIN%
+    )
+)
+
+REM Run PowerShell logic for removing duplicates
+powershell -Command "& {$csvPath = '%CSV_PATH%'; if (Test-Path $csvPath) { $csvContent = Get-Content $csvPath; $duplicates = $csvContent | Group-Object { ($_ -split ',')[0].Trim() } | Where-Object { $_.Count -gt 1 }; if ($duplicates) { Write-Host 'Duplicate lines found in the CSV file:' -ForegroundColor Blue; $duplicates | ForEach-Object { Write-Host ('`t' + ($_.Group -join '`n`t')) -ForegroundColor Red }; $uniqueLines = $csvContent | Group-Object { ($_ -split ',')[0].Trim() } | ForEach-Object { $_.Group | Select-Object -First 1 }; $uniqueLines | Set-Content $csvPath; Write-Host 'Duplicates have been removed from the CSV file. Please build and rerun the patchrunner' -ForegroundColor Green } else { Write-Host 'No duplicate lines found in the CSV file.' -ForegroundColor Green } } else { Write-Host 'CSV file not found at:' $csvPath -ForegroundColor Red } }"
+
+echo Duplicate removal completed.
 pause
 
 
-:management
-cd /d "D:\Projects\catfish\Catfish\Catfish.PatchRunner"
-if exist .\bin\Release\Settings.txt (
-	del .\bin\Release\Settings.txt
-    )
-
-    
-        copy D:\SettingsTxt\CatfishManagement\Settings.txt D:\Projects\catfish\Catfish\Catfish.PatchRunner\bin\Release
-        powershell write-host -fore Cyan Copied Settings.txt file.
-    
-
-    cd /d ".\bin\Release"
-    cls
-    start /B /wait Catfish.PatchRunner.exe task catfishmanagement
-    pause
-) else (
-    cls
-    powershell write-host -fore Red Error: bin/Release folder does not exist. Try to build your project first.
-    pause
-)
-
-
-:update
-cd /d "D:\Projects\catfish\Catfish\Catfish.PatchRunner"
-if exist .\bin\Release\Settings.txt (
-	del .\bin\Release\Settings.txt
-    )
-
-        copy D:\SettingsTxt\Update\Settings.txt D:\Projects\catfish\Catfish\Catfish.PatchRunner\bin\Release
-        powershell write-host -fore Cyan Copied Settings.txt file.
-    
-
-    cd /d ".\bin\Release"
-    cls
-    start /B /wait Catfish.PatchRunner.exe update
-    pause
-) else (
-    cls
-    powershell write-host -fore Red Error: bin/Release folder does not exist. Try to build your project first.
-    pause
-)
+REM ==========================================
+REM Exit Function
+REM ==========================================
+:exit
+echo Goodbye!
+exit /b 0
