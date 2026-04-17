@@ -118,7 +118,7 @@ if exist "%SETTINGS_UPDATE%" (
 
 REM Run Update
 cd /d "%PATCHRUNNER_BIN%"
-start /B /wait Catfish.PatchRunner.exe update
+start /B /wait Catfish.PatchRunner.exe update -translations
 echo Update completed.
 pause
 goto menu
